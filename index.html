@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>火柴人：萬象法則 (v17.2 聯機修復版)</title>
+    <title>火柴人：萬象法則 (v18.0 混沌平衡版)</title>
     <!-- 引入 PeerJS 用於聯機功能 -->
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
@@ -57,17 +57,19 @@
         .hud { display: flex; justify-content: space-between; padding: 10px 20px; height: 10%; pointer-events: none; }
         .hp-container { width: 40%; display: flex; flex-direction: column; }
         .hp-bar { width: 100%; height: 15px; background: #444; border: 2px solid white; margin-top: 5px; transform: skewX(-15deg); overflow: hidden; position: relative; }
-        .hp-fill { height: 100%; transition: width 0.1s linear; } /* Smoother transition for sync */
+        .hp-fill { height: 100%; transition: width 0.1s linear; }
         .p1-fill { background: #00aaff; width: 100%; }
         .p2-fill { background: #ff4444; width: 100%; }
         .status-text { font-size: 12px; color: yellow; margin-top: 5px; height: 20px; text-shadow: 1px 1px 0 #000; white-space: nowrap; }
         
+        /* Exit Button */
+        #exit-btn { pointer-events: auto; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(255,0,0,0.5); border: 1px solid #fff; color: white; padding: 5px 15px; border-radius: 5px; cursor: pointer; display: none; z-index: 200; }
+
         /* Character Specific UI */
         .ling-orbs { display: flex; gap: 3px; margin-top: 2px; }
         .ling-orb { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #fff; background: #333; }
         .ling-orb.ready { background: #ffff00; box-shadow: 0 0 5px #ffff00; }
         
-        /* Generic Resource Bar (Ember/Teslam/Graviton) */
         .resource-bar { width: 100%; height: 5px; background: #333; margin-top: 2px; position: relative; }
         .resource-fill { height: 100%; background: #ff5500; width: 0%; transition: width 0.1s; }
         .resource-marker { position: absolute; top: -2px; width: 2px; height: 9px; background: white; z-index: 2;}
@@ -92,6 +94,7 @@
         .p1-s1 { bottom: 30px; left: 160px; width: 50px; height: 50px; border-color: #00aaff;}
         .p1-s2 { bottom: 90px; left: 180px; width: 50px; height: 50px; border-color: #00aaff;}
         .p1-s3 { bottom: 105px; left: 240px; width: 50px; height: 50px; border-color: #00aaff;}
+        .p1-burst { bottom: 190px; left: 20px; width: 35px; height: 35px; border-color: #ff0000; background: rgba(255,0,0,0.3); font-size: 9px; }
         .p1-chat { bottom: 160px; left: 110px; width: 40px; height: 40px; border-color: #fff; background: rgba(100,100,255,0.4); font-size: 16px; }
 
         /* P2 Layout */
@@ -103,6 +106,7 @@
         .p2-s1 { bottom: 30px; right: 160px; width: 50px; height: 50px; border-color: #ff4444;}
         .p2-s2 { bottom: 90px; right: 180px; width: 50px; height: 50px; border-color: #ff4444;}
         .p2-s3 { bottom: 105px; right: 240px; width: 50px; height: 50px; border-color: #ff4444;}
+        .p2-burst { bottom: 190px; right: 20px; width: 35px; height: 35px; border-color: #ff0000; background: rgba(255,0,0,0.3); font-size: 9px; }
         .p2-chat { bottom: 160px; right: 110px; width: 40px; height: 40px; border-color: #fff; background: rgba(255,100,100,0.4); font-size: 16px; }
 
         .skill-label { font-size: 9px; position: absolute; bottom: -12px; width: 80px; text-align: center; text-shadow: 1px 1px 0 #000; pointer-events: none; left: -15px;}
@@ -180,6 +184,7 @@
 
     <div class="ui-layer">
         <div id="training-msg">⚔️ 訓練營模式 (無限狀態) ⚔️</div>
+        <button id="exit-btn" onclick="resetGame()">退出戰鬥</button>
         <div class="hud">
             <div class="hp-container">
                 <div id="p1-name">Waiting...</div>
@@ -224,6 +229,7 @@
         <div class="touch-btn p1-s1" data-key="p1-s0"><span class="skill-label">S1</span><div class="cd-overlay"></div></div>
         <div class="touch-btn p1-s2" data-key="p1-s1"><span class="skill-label">S2</span><div class="cd-overlay"></div></div>
         <div class="touch-btn p1-s3" data-key="p1-s2"><span class="skill-label">S3</span><div class="cd-overlay"></div></div>
+        <div class="touch-btn p1-burst" data-key="p1-burst">爆<div class="cd-overlay"></div></div>
         <div class="touch-btn p1-chat" onclick="triggerTaunt('p1')">💬</div>
     </div>
 
@@ -236,6 +242,7 @@
         <div class="touch-btn p2-s1" data-key="p2-s0"><span class="skill-label">S1</span><div class="cd-overlay"></div></div>
         <div class="touch-btn p2-s2" data-key="p2-s1"><span class="skill-label">S2</span><div class="cd-overlay"></div></div>
         <div class="touch-btn p2-s3" data-key="p2-s2"><span class="skill-label">S3</span><div class="cd-overlay"></div></div>
+        <div class="touch-btn p2-burst" data-key="p2-burst">爆<div class="cd-overlay"></div></div>
         <div class="touch-btn p2-chat" onclick="triggerTaunt('p2')">💬</div>
     </div>
 
@@ -280,6 +287,46 @@ let timeScale = 1.0;
 
 // --- Data ---
 const CHARACTERS = [
+    {
+        id: 'khaos', name: '萬象編織者 - 卡俄斯 (平衡版)', icon: '🌀', color: '#ff00ff', weapon: 'orb', hp: 90, speed: 3.2,
+        desc: '規則的化身。通過篡改戰場規則(因果律)來取勝。**[平衡調整]** 技能冷卻大幅增加，現在冷卻時間會在效果結束後才開始轉動。反傷現在只反射50%傷害，自身承受33%。',
+        counters: '克制: 依賴連招 | 被克制: 簡單粗暴角色',
+        skills: [
+            { name: '因果篡改 (Q)', cd: 600, type: 'khaos_link', desc: '連結對手，反射50%傷害給對手，自身承受33%。(CD: 10秒)' },
+            { name: '定律覆寫 (W)', cd: 550, type: 'khaos_field', desc: '創造悖論領域，反轉移動或治療/傷害。(CD: 9秒)' },
+            { name: '萬象歸寂 (E)', cd: 900, type: 'khaos_ult', desc: '終極技能。強制全場禁武(沉默)與易傷。(CD: 15秒)' }
+        ]
+    },
+    {
+        id: 'dracula', name: '血族伯爵 - 德古拉', icon: '🦇', color: '#8a0303', weapon: 'sword', hp: 95, speed: 3.5,
+        desc: '暗夜的貴族。攻擊帶有吸血效果，能化身蝙蝠躲避攻擊。',
+        counters: '克制: 消耗型角色 | 被克制: 爆發/重傷',
+        skills: [
+            { name: '鮮血渴望 (Q)', cd: 180, type: 'blood_suck', damage: 15, desc: '發射血球，命中回復自身生命。' },
+            { name: '蝙蝠化身 (W)', cd: 300, type: 'bat_form', desc: '化為蝙蝠群無敵並突進，穿越敵人造成傷害。' },
+            { name: '血河降臨 (E)', cd: 700, type: 'blood_river', desc: '召喚血河，持續傷害並大幅吸血。' }
+        ]
+    },
+    {
+        id: 'x01', name: '機動戰兵 X-01', icon: '🤖', color: '#00ffaa', weapon: 'hammer', hp: 110, speed: 2.5,
+        desc: '重型火力平台。擁有強大的遠程壓制能力，但機動性較差。',
+        counters: '克制: 陣地戰 | 被克制: 高機動刺客',
+        skills: [
+            { name: '光束加農 (Q)', cd: 240, type: 'laser_beam', damage: 25, desc: '發射直線高能雷射。' },
+            { name: '追蹤導彈 (W)', cd: 360, type: 'missile_swarm', damage: 8, desc: '發射3枚追蹤導彈。' },
+            { name: '戰術核彈 (E)', cd: 900, type: 'nuke', damage: 60, desc: '召喚核彈轟炸全屏。' }
+        ]
+    },
+    {
+        id: 'ryu', name: '極限流 - 隆', icon: '🥋', color: '#ffffff', weapon: 'sword', hp: 100, speed: 3.2,
+        desc: '追求武道極致的格鬥家。擅長波動拳與昇龍拳。',
+        counters: '克制: 近戰 | 被克制: 遠程風箏',
+        skills: [
+            { name: '波動拳 (Q)', cd: 120, type: 'hadoken', damage: 15, desc: '釋放氣功波。' },
+            { name: '昇龍拳 (W)', cd: 240, type: 'shoryuken', damage: 25, desc: '對空無敵判定，擊飛敵人。' },
+            { name: '真空波動 (E)', cd: 600, type: 'shinku_hadoken', damage: 45, desc: '強化版多段氣功波。' }
+        ]
+    },
     {
         id: 'graviton', name: '重力暴君 - 格拉維頓', icon: '🪐', color: '#4b0082', weapon: 'orb', hp: 110, speed: 2.5,
         desc: '掌控引力的暴君。核心機制「密度」：攻擊或受擊積攢密度，滿層獲得霸體。W技能可創造重力異常區域。',
@@ -371,16 +418,6 @@ const CHARACTERS = [
         ]
     },
     {
-        id: 'khaos', name: '萬象編織者 - 卡俄斯', icon: '🌀', color: '#ff00ff', weapon: 'orb', hp: 90, speed: 3.2,
-        desc: '規則的化身。通過篡改戰場規則(因果律)來取勝。',
-        counters: '克制: 依賴連招 | 被克制: 簡單粗暴角色',
-        skills: [
-            { name: '因果篡改 (Q)', cd: 240, type: 'khaos_link', desc: '連結對手，吸血或反傷。' },
-            { name: '定律覆寫 (W)', cd: 360, type: 'khaos_field', desc: '創造悖論領域，反轉移動或治療/傷害。' },
-            { name: '萬象歸寂 (E)', cd: 900, type: 'khaos_ult', desc: '終極技能。強制全場禁武(沉默)與易傷。' }
-        ]
-    },
-    {
         id: 'ohm', name: '能量導體 - 歐姆', icon: '🔋', color: '#00ffff', weapon: 'orb', hp: 100, speed: 3.2,
         desc: '防守反擊大師。吸收傷害轉化為儲能。技能具有高優先級，不會被普攻抵消。',
         counters: '克制: 高頻率攻擊 | 被克制: 抓技/破防',
@@ -415,6 +452,7 @@ let conn = null;
 let myRoomId = null;
 let isHost = false;
 let onlineRole = null; // 'p1' or 'p2'
+let p1Locked = false; // For sequential selection
 
 // --- Classes ---
 class GameObject { constructor(x,y,c){this.x=x;this.y=y;this.color=c;this.marked=false;} }
@@ -476,7 +514,8 @@ class Player {
     constructor(id, x, data) {
         this.id = id; this.x = x; this.y = GROUND_Y; this.vx = 0; this.vy = 0;
         this.data = data; this.hp = data.hp; this.maxHp = data.hp; this.color = data.color;
-        this.facingRight = id === 'p1'; this.cooldowns = [0,0,0]; this.atkCd = 0;
+        this.facingRight = id === 'p1'; this.cooldowns = [0,0,0,0,0]; // 4th is dodge, 5th is burst
+        this.atkCd = 0;
         this.stunTimer = 0; this.invincible = 0; this.buffs = [];
         this.aiTimer = 0; this.inputAI = {left:false,right:false,jump:false};
         
@@ -505,6 +544,7 @@ class Player {
         this.timeStopActive = false;
         
         this.lagMode = false;
+        this.batMode = false;
 
         if (this.data.id === 'samsara') {
             this.hp = 85; this.maxHp = 100; 
@@ -515,6 +555,7 @@ class Player {
     }
 
     update() {
+        if (gameState !== 'FIGHT') return;
         if(this.hp <= 0) return;
         if (isNaN(this.x) || isNaN(this.y)) { this.x = this.id==='p1'?100:canvas.width-100; this.y = GROUND_Y; this.vx=0; this.vy=0; }
 
@@ -532,8 +573,6 @@ class Player {
         if (gameMode === 'PVE' && this.id === 'p2' && this.stunTimer <= 0) this.updateAI();
 
         // --- Physics Logic ---
-        // 如果是聯機模式且不是房主(Client)，則跳過物理計算（移動、跳躍），只進行狀態更新
-        // 這樣可以讓冷卻時間、Buff等邏輯繼續跑，但位置由Host同步
         const shouldRunPhysics = (gameMode !== 'ONLINE' || isHost);
 
         if (shouldRunPhysics) {
@@ -558,7 +597,7 @@ class Player {
                     if (this.exhaustionTimer > 0) { this.exhaustionTimer -= 1 * timeScale; speedMod = 0.5; } 
                     else if (this.energy < 100) { this.energy = Math.min(100, this.energy + 0.25 * timeScale); } 
                     if (this.energy >= 100 && this.stunTimer <= 0 && this.exhaustionTimer <= 0) {
-                        this.stunTimer = 90; this.energy = 0; this.cooldowns = [0,0,0]; 
+                        this.stunTimer = 90; this.energy = 0; this.cooldowns = [0,0,0,0,0]; 
                         floatingTexts.push(new FloatingText(this.x, this.y-50, "💥 MELTDOWN!", "red"));
                         createExplosion(this.x, this.y-30, 'orange', 20); shakeScreen();
                     }
@@ -609,7 +648,8 @@ class Player {
             let g = GRAVITY;
             if (this.buffs.find(b=>b.type==='high_gravity')) g = GRAVITY * 2.5;
             if (this.buffs.find(b=>b.type==='anti_gravity')) g = GRAVITY * 0.4;
-            
+            if (this.batMode) g = 0; // Dracula bat mode
+
             this.vy += g * timeScale; this.vx *= FRICTION; 
             this.x += this.vx * timeScale; this.y += this.vy * timeScale;
             if(this.y > GROUND_Y) { this.y = GROUND_Y; this.vy = 0; }
@@ -619,8 +659,6 @@ class Player {
 
         // --- Cooldowns & Status (Always run) ---
         let cdRate = 1 * timeScale;
-        // (Simplified paradox check for client to avoid desync, or rely on host)
-        // if (paradox && Math.abs(this.x - paradox.x) < 150 && paradox.subType === 'cause') cdRate = 2 * timeScale; 
         if (globalRule === 'silence') cdRate = 0.5 * timeScale; 
         if (gameMode === 'TRAINING') cdRate = 10; 
 
@@ -670,7 +708,7 @@ class Player {
             this.facingRight = enemy.x > this.x;
             
             let keepDist = false;
-            if (this.data.weapon === 'bow' || this.data.weapon === 'staff') keepDist = true;
+            if (this.data.weapon === 'bow' || this.data.weapon === 'staff' || this.data.id === 'x01') keepDist = true;
 
             if (keepDist) {
                  if (dist < 200) this.inputAI = {left: !this.facingRight, right: this.facingRight, jump: Math.random()<0.2};
@@ -688,12 +726,16 @@ class Player {
             if (this.data.id === 'chronos' && this.hp < 50 && this.cooldowns[1] <= 0) this.useSkill(1); 
             if (this.data.id === 'graviton' && dist < 150 && this.cooldowns[0] <= 0) this.useSkill(0);
             if (this.data.id === 'graviton' && this.cooldowns[1] <= 0 && dist < 200) this.useSkill(1); 
+            if (this.data.id === 'dracula' && this.hp < 60 && this.cooldowns[0] <= 0) this.useSkill(0);
+            if (this.data.id === 'ryu' && dist < 80 && this.cooldowns[1] <= 0) this.useSkill(1);
 
             if (Math.random() < 0.4) {
                 const sIdx = Math.floor(Math.random()*3);
                 if (this.cooldowns[sIdx] <= 0) this.useSkill(sIdx);
                 else if (dist < 100 && this.atkCd <= 0) this.basicAttack();
             }
+            // AI Burst logic
+            if (this.combo > 3 && this.cooldowns[4] <= 0) this.burst();
         }
     }
 
@@ -750,22 +792,26 @@ class Player {
         if (this.data.id === 'zero' && this.lagMode) {
              ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#0f0'; ctx.fillRect(this.x-15, this.y-60, 30, 60); ctx.restore();
         }
+        
+        if (this.batMode) {
+             ctx.save(); ctx.font = "30px Arial"; ctx.fillText("🦇", this.x-15, this.y-20); ctx.restore();
+        } else {
+            ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+            const hx = this.x + hw*15, hy = this.y-30;
+            if(this.data.weapon === 'sword') { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx+hw*30, hy-10); ctx.stroke(); }
+            else if(this.data.weapon === 'bow') { ctx.beginPath(); ctx.arc(hx+hw*10, hy, 15, -1.5, 1.5, this.facingRight); ctx.stroke(); }
+            else if(this.data.weapon === 'staff' || this.data.weapon === 'orb') { ctx.beginPath(); ctx.arc(hx+hw*10, hy-10, 5, 0, Math.PI*2); ctx.fillStyle = this.color; ctx.fill(); }
+            else if(this.data.weapon === 'hammer') { ctx.fillStyle='#888'; ctx.fillRect(hx+hw*10, hy-20, 20, 15); }
+            ctx.restore();
 
-        ctx.save(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-        const hx = this.x + hw*15, hy = this.y-30;
-        if(this.data.weapon === 'sword') { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx+hw*30, hy-10); ctx.stroke(); }
-        else if(this.data.weapon === 'bow') { ctx.beginPath(); ctx.arc(hx+hw*10, hy, 15, -1.5, 1.5, this.facingRight); ctx.stroke(); }
-        else if(this.data.weapon === 'staff' || this.data.weapon === 'orb') { ctx.beginPath(); ctx.arc(hx+hw*10, hy-10, 5, 0, Math.PI*2); ctx.fillStyle = this.color; ctx.fill(); }
-        else if(this.data.weapon === 'hammer') { ctx.fillStyle='#888'; ctx.fillRect(hx+hw*10, hy-20, 20, 15); }
-        ctx.restore();
-
-        ctx.strokeStyle = this.color; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(this.x, this.y-60, 10, 0, Math.PI*2);
-        ctx.moveTo(this.x, this.y-50); ctx.lineTo(this.x, this.y-25);
-        ctx.moveTo(this.x, this.y-25); ctx.lineTo(this.x-10, this.y);
-        ctx.moveTo(this.x, this.y-25); ctx.lineTo(this.x+10, this.y);
-        ctx.moveTo(this.x, this.y-50); ctx.lineTo(hx, hy);
-        ctx.stroke();
+            ctx.strokeStyle = this.color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(this.x, this.y-60, 10, 0, Math.PI*2);
+            ctx.moveTo(this.x, this.y-50); ctx.lineTo(this.x, this.y-25);
+            ctx.moveTo(this.x, this.y-25); ctx.lineTo(this.x-10, this.y);
+            ctx.moveTo(this.x, this.y-25); ctx.lineTo(this.x+10, this.y);
+            ctx.moveTo(this.x, this.y-50); ctx.lineTo(hx, hy);
+            ctx.stroke();
+        }
         
         if(this.stunTimer>0) ctx.fillText('💫', this.x-5, this.y-80);
         if(this.causalLink) { ctx.strokeStyle='red'; ctx.beginPath(); ctx.moveTo(this.x, this.y-60); const e=players.find(p=>p.id!==this.id); if(e) ctx.lineTo(e.x, e.y-60); ctx.stroke(); }
@@ -848,6 +894,7 @@ class Player {
 
         if (this.data.id === 'necro' && enemy) enemy.applyStatus('poison', 180);
         if (this.data.id === 'paladin' && enemy) enemy.applyStatus('weak', 180);
+        if (this.data.id === 'dracula') this.heal(2);
         
         if (this.data.id === 'teslam') {
              if (enemy && getDist(this.x, this.y, enemy.x, enemy.y) < 80) this.addLoad(5); 
@@ -906,12 +953,23 @@ class Player {
         updateCd(this.id, 'dodge', 60); 
     }
     
+    burst() {
+        if (this.cooldowns[4] > 0) return;
+        this.cooldowns[4] = 3600; // 60s CD
+        updateCd(this.id, 'burst', 3600);
+        createExplosion(this.x, this.y, '#ff0000', 50);
+        floatingTexts.push(new FloatingText(this.x, this.y-80, "BURST!", "red"));
+        this.invincible = 30;
+        this.stunTimer = 0;
+        const enemy = players.find(p => p.id !== this.id);
+        if (enemy) {
+            enemy.vx = (this.x > enemy.x ? -1 : 1) * 30;
+            enemy.stun(20);
+        }
+    }
+
     takeDamage(n, sourcePlayer, type='hit') {
-        // --- Host Authority Logic ---
-        // 在聯機模式下，只有房主(Host)可以計算傷害。
-        // 客戶端(Client)不進行傷害計算，只等待主機同步血量。
         if (gameMode === 'ONLINE' && !isHost) return;
-        // ----------------------------
 
         if(this.invincible>0 || globalRule === 'silence') return; 
         
@@ -953,9 +1011,12 @@ class Player {
         }
 
         if (this.data.id === 'khaos' && this.causalLink > 0 && sourcePlayer) { 
-            sourcePlayer.takeDamage(n, null, 'reflect'); 
+            // Chaos Nerf: Reflect 50%, Self 33%
+            sourcePlayer.takeDamage(n * 0.5, null, 'reflect'); 
+            this.hp -= n * 0.33;
             createExplosion(this.x, this.y-30, 'red', 5); 
             floatingTexts.push(new FloatingText(this.x, this.y-60, "REFLECT!", "red"));
+            updateHp();
             return; 
         }
         
@@ -1060,8 +1121,9 @@ class Player {
             if (idx === 1) cd = 120; 
         }
         
-        if (this.data.id === 'graviton' && s.type === 'gravity_shift') {
-            cd = 300 + 360; 
+        // Chaos Nerf: CD starts after effect
+        if (this.data.id === 'khaos') {
+            // CD is already increased in data, just apply it
         }
 
         this.cooldowns[idx] = cd; updateCd(this.id, idx, cd);
@@ -1076,6 +1138,35 @@ class Player {
         if (this.data.id === 'sera' && idx !== 2) this.lastSkill = s.type; 
 
         switch(s.type) {
+            case 'blood_suck':
+                projectiles.push(new Projectile(this.id, this.x, this.y-30, dir*10, 0, {type:'drain_proj', damage:15, color:'#8a0303'}));
+                break;
+            case 'bat_form':
+                this.batMode = true; this.invincible = 60; this.vx = dir * 20;
+                setTimeout(() => { this.batMode = false; if(enemy && getDist(this.x, this.y, enemy.x, enemy.y) < 80) enemy.takeDamage(20, this); }, 1000);
+                break;
+            case 'blood_river':
+                effects.push(new Trap(this.id, this.x + dir*150, GROUND_Y, 5, 300, 'blood_river'));
+                break;
+            case 'laser_beam':
+                effects.push(new Beam(this.id, this.x, this.y-30, dir, 25, 20, false, 'laser'));
+                break;
+            case 'missile_swarm':
+                for(let i=0; i<3; i++) setTimeout(() => projectiles.push(new Projectile(this.id, this.x, this.y-50, dir*5, -5-i*2, {type:'proj_homing', damage:8, color:'#00ffaa'})), i*200);
+                break;
+            case 'nuke':
+                setTimeout(() => { createExplosion(canvas.width/2, GROUND_Y, '#00ffaa', 100); if(enemy) enemy.takeDamage(60, this); shakeScreen(); }, 1000);
+                break;
+            case 'hadoken':
+                projectiles.push(new Projectile(this.id, this.x, this.y-30, dir*12, 0, {type:'basic', damage:15, color:'#fff'}));
+                break;
+            case 'shoryuken':
+                this.vy = -15; this.vx = dir * 5; this.invincible = 20;
+                setTimeout(() => { if(enemy && getDist(this.x, this.y, enemy.x, enemy.y) < 60) { enemy.takeDamage(25, this); enemy.vy = -15; } }, 100);
+                break;
+            case 'shinku_hadoken':
+                projectiles.push(new Projectile(this.id, this.x, this.y-30, dir*15, 0, {type:'basic', damage:45, color:'#00ffff', size: 20}));
+                break;
             case 'graviton_pull':
                 if (enemy) {
                     enemy.vx = (this.x - enemy.x) * 0.15; 
@@ -1423,6 +1514,7 @@ class Projectile extends GameObject {
         }
 
         if(!this.marked && t && Math.abs(t.x-this.x)<20 && Math.abs(t.y-30-this.y)<30) { 
+            if (this.cfg.type === 'drain_proj') { owner.heal(5); }
             t.takeDamage(this.cfg.damage, players.find(p=>p.id===this.oid)); 
             this.marked=true; 
             if(this.cfg.type==='proj_bomb' && t) t.applyStatus('burn', 180);
@@ -1441,6 +1533,8 @@ class Projectile extends GameObject {
             ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(Math.atan2(this.vy, this.vx)); ctx.beginPath(); ctx.moveTo(-10, -20); ctx.quadraticCurveTo(10, 0, -10, 20); ctx.strokeStyle = this.color; ctx.lineWidth=3; ctx.stroke(); ctx.restore();
         } else if (this.cfg.type === 'glitch_block') {
             ctx.fillRect(this.x-5, this.y-5, 10 + Math.random()*5, 10 + Math.random()*5);
+        } else if (this.cfg.size) {
+            ctx.beginPath(); ctx.arc(this.x,this.y,this.cfg.size,0,7); ctx.fill();
         } else { ctx.beginPath(); ctx.arc(this.x,this.y,6,0,7); ctx.fill(); }
     }
 }
@@ -1460,6 +1554,12 @@ class Trap extends GameObject {
                 projectiles.push(new Projectile(this.oid, this.x, this.y-30, 5, 0, {type:'basic', damage:5, color:'#00ccff'}));
                 projectiles.push(new Projectile(this.oid, this.x, this.y-30, -5, 0, {type:'basic', damage:5, color:'#00ccff'}));
             }
+        }
+        
+        if (this.type==='blood_river' && Math.floor(this.timer) % 20 === 0) {
+            const t = players.find(p=>p.id!==this.oid);
+            const owner = players.find(p=>p.id===this.oid);
+            if(t && Math.abs(t.x-this.x)<150) { t.takeDamage(2, owner); owner.heal(1); }
         }
 
         if(this.type==='ling_star' && Math.floor(this.life)===5) { 
@@ -1496,6 +1596,7 @@ class Trap extends GameObject {
         if(this.type==='khaos_field') { ctx.fillStyle=this.color; ctx.fillRect(this.x-150, this.y-200, 300, 200); ctx.strokeStyle='#fff'; ctx.strokeRect(this.x-150, this.y-200, 300, 200); }
         else if (this.type==='ling_star') { ctx.fillStyle = `rgba(230, 230, 250, ${this.life/10})`; ctx.beginPath(); ctx.arc(this.x, this.y, 60, 0, Math.PI*2); ctx.fill(); }
         else if (this.type==='thor_thunder') { ctx.fillStyle = `rgba(0, 204, 255, 0.5)`; ctx.fillRect(this.x-80, this.y-300, 160, 300); }
+        else if (this.type==='blood_river') { ctx.fillStyle = `rgba(138, 3, 3, 0.5)`; ctx.fillRect(this.x-150, this.y-10, 300, 10); }
         else if (this.type==='gravity_zone') { 
             ctx.fillStyle = `rgba(75, 0, 130, 0.3)`; 
             ctx.beginPath(); ctx.arc(this.x, this.y-50, 150, 0, Math.PI*2); ctx.fill();
@@ -1588,6 +1689,8 @@ class Beam extends GameObject {
             ctx.stroke();
         } else if (this.type === 'gravity_beam' && this.target) {
             ctx.strokeStyle = '#4b0082'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.target.x, this.target.y-30); ctx.stroke();
+        } else if (this.type === 'laser') {
+            ctx.fillStyle = '#00ffaa'; ctx.fillRect(this.d>0?this.x:this.x-1000, this.y-10, 1000, 20);
         } else {
             ctx.fillStyle=this.color; ctx.fillRect(this.d>0?this.x:this.x-1000,this.y-5,1000,10);
         }
@@ -1630,7 +1733,7 @@ function setupTouchListeners() {
                 // If I am Client, wait for Host to sync position, BUT visual feedback for skills needs to be triggered
                 if (isHost) {
                     inputState[pid] = inputState[pid] || {}; inputState[pid][act] = true;
-                    if(act.startsWith('s') || act==='dodge' || act==='atk') {
+                    if(act.startsWith('s') || act==='dodge' || act==='atk' || act==='burst') {
                         handleAction(pid, act);
                         // Broadcast action to Client so they see it
                         sendOnlineData({type: 'force_action', pid: pid, act: act});
@@ -1642,7 +1745,7 @@ function setupTouchListeners() {
 
             if(gameMode !== 'PVP' && pid==='p2') return;
             inputState[pid] = inputState[pid] || {}; inputState[pid][act] = true; btn.classList.add('active');
-            if(act.startsWith('s') || act==='dodge' || act==='atk') handleAction(pid, act);
+            if(act.startsWith('s') || act==='dodge' || act==='atk' || act==='burst') handleAction(pid, act);
         }, {passive:false});
         
         btn.addEventListener('touchend', e => {
@@ -1654,7 +1757,7 @@ function setupTouchListeners() {
                 if(pid !== onlineRole) return;
                 sendOnlineData({type:'input', key: act, state: false});
                 if (isHost) {
-                     if(inputState[pid]) inputState[pid][act] = false;
+                      if(inputState[pid]) inputState[pid][act] = false;
                 }
                 btn.classList.remove('active');
                 return;
@@ -1670,7 +1773,10 @@ function handleAction(pid, act) {
     if (gameState !== 'FIGHT') return;
     const p = players.find(pl => pl.id === pid);
     if (!p) return;
-    if (act === 'dodge') p.dodge(); else if (act === 'atk') p.basicAttack(); else if (act.startsWith('s')) p.useSkill(parseInt(act.charAt(1)));
+    if (act === 'dodge') p.dodge(); 
+    else if (act === 'atk') p.basicAttack(); 
+    else if (act === 'burst') p.burst();
+    else if (act.startsWith('s')) p.useSkill(parseInt(act.charAt(1)));
 }
 
 function toggleMode() { 
@@ -1751,6 +1857,17 @@ function setupConnection() {
                 sendOnlineData({type:'start_game', p1: p1CharIndex, p2: p2CharIndex});
             }
         }
+        if(data.type === 'p1_locked') {
+             // P1 has locked, allow P2 to select
+             p1Locked = true;
+             document.getElementById('select-title').innerText = "P1 已鎖定。請選擇 P2 角色";
+             // If P2 has a character selected in UI, re-run showCharInfo to enable button
+             const selected = document.querySelector('.char-card.selected');
+             if(selected) {
+                 const idx = parseInt(selected.id.split('-')[1]);
+                 showCharInfo(idx);
+             }
+        }
         if(data.type === 'start_game') {
             p1CharIndex = data.p1;
             p2CharIndex = data.p2;
@@ -1763,9 +1880,9 @@ function setupConnection() {
                 if(data.state) {
                     inputState[targetPid] = inputState[targetPid] || {}; inputState[targetPid][data.key] = true;
                     // If it's a skill/action, execute it on Host AND broadcast it
-                    if(data.key.startsWith('s') || data.key==='dodge' || data.key==='atk') {
-                         handleAction(targetPid, data.key);
-                         sendOnlineData({type: 'force_action', pid: targetPid, act: data.key});
+                    if(data.key.startsWith('s') || data.key==='dodge' || data.key==='atk' || data.key==='burst') {
+                          handleAction(targetPid, data.key);
+                          sendOnlineData({type: 'force_action', pid: targetPid, act: data.key});
                     }
                 } else {
                     if(inputState[targetPid]) inputState[targetPid][data.key] = false;
@@ -1776,7 +1893,6 @@ function setupConnection() {
         // Force Action (Visual Sync)
         if (data.type === 'force_action') {
             // Client receives instruction to play animation/skill
-            // Host receives instruction (rare, mostly Host sends to Client)
             handleAction(data.pid, data.act);
         }
 
@@ -1823,7 +1939,7 @@ function initCharSelect() {
     const g = document.getElementById('char-grid'); g.innerHTML='';
     CHARACTERS.forEach((c,i)=>{
         const d=document.createElement('div'); d.className='char-card'; 
-        if(c.id==='gale' || c.id==='titan' || c.id==='graviton' || c.id==='ohm') d.innerHTML+='<span class="new-tag">NEW</span>';
+        if(c.id==='dracula' || c.id==='x01' || c.id==='ryu') d.innerHTML+='<span class="new-tag">NEW</span>';
         d.innerHTML+=`<div class="char-icon" style="color:${c.color}">${c.icon}</div><div class="char-name">${c.name}</div>`;
         d.onclick=()=>showCharInfo(i); d.id=`c-${i}`; g.appendChild(d);
     });
@@ -1853,17 +1969,22 @@ function showCharInfo(i) {
                  p1CharIndex = i;
                  document.getElementById('select-title').innerText = "等待 P2 選擇...";
                  btn.disabled = true;
-                 // Wait for P2 to send selection via network, handled in conn.on('data')
+                 sendOnlineData({type: 'p1_locked'});
              };
         } else {
              btn.style.display = 'block';
-             btn.disabled = false;
-             btn.innerText = "確認選擇 (P2)";
-             btn.onclick = () => {
-                 sendOnlineData({type: 'char_select', index: i});
-                 document.getElementById('select-title').innerText = "等待主機開始...";
+             if (p1Locked) {
+                 btn.disabled = false;
+                 btn.innerText = "確認選擇 (P2)";
+                 btn.onclick = () => {
+                     sendOnlineData({type: 'char_select', index: i});
+                     document.getElementById('select-title').innerText = "等待主機開始...";
+                     btn.disabled = true;
+                 };
+             } else {
                  btn.disabled = true;
-             };
+                 btn.innerText = "等待 P1 鎖定...";
+             }
         }
     } else {
         // Local logic
@@ -1880,6 +2001,7 @@ function confirmSelection(i) {
 
 function startGame() {
     gameState='FIGHT'; document.getElementById('char-select-screen').style.display='none';
+    document.getElementById('exit-btn').style.display = 'block';
     
     if (gameMode === 'ONLINE') {
         document.getElementById('p1-controls').style.display = (onlineRole === 'p1') ? 'block' : 'none';
@@ -1890,6 +2012,10 @@ function startGame() {
     }
 
     players = [new Player('p1',100,CHARACTERS[p1CharIndex]), new Player('p2',canvas.width-100,CHARACTERS[p2CharIndex])];
+    // Ensure HP is set correctly at start to avoid instant win
+    players[0].hp = players[0].maxHp;
+    players[1].hp = players[1].maxHp;
+    
     if(gameMode !== 'PVP' && gameMode !== 'ONLINE') players[1].inputAI = {}; 
     document.getElementById('p1-name').innerText=players[0].data.name; document.getElementById('p2-name').innerText=players[1].data.name;
     ['p1','p2'].forEach((pid,i)=>{ for(let j=0;j<3;j++) { const el=document.querySelector(`.${pid}-s${j+1} .skill-label`); if(el) el.innerText=players[i].data.skills[j].name.substring(0,2); } });
@@ -1902,7 +2028,11 @@ function startGame() {
 
 function updateHp() { if(players.length<2)return; document.getElementById('p1-hp').style.width=(players[0].hp/players[0].maxHp*100)+'%'; document.getElementById('p2-hp').style.width=(players[1].hp/players[1].maxHp*100)+'%'; }
 function updateCd(pid,i,max) {
-    const el = document.querySelector(`.${pid}-${i==='dodge'?'dodge':'s'+(i+1)} .cd-overlay`);
+    let selector = `.${pid}-s${i+1} .cd-overlay`;
+    if(i==='dodge') selector = `.${pid}-dodge .cd-overlay`;
+    if(i==='burst') selector = `.${pid}-burst .cd-overlay`;
+    
+    const el = document.querySelector(selector);
     if(!el) return; el.style.display='flex'; let f=max;
     const t = setInterval(()=>{ f-=5; el.innerText=Math.ceil(f/60); if(f<=0){clearInterval(t);el.style.display='none';} }, 80);
     activeTimers.push(t);
@@ -1926,6 +2056,7 @@ function resetGame() {
     document.getElementById('char-select-screen').style.display='flex'; document.getElementById('select-title').innerText="P1 (藍色) 選擇"; document.getElementById('select-title').style.color='#0af';
     document.getElementById('info-panel').style.display='none'; document.getElementById('info-placeholder').style.display='block';
     document.getElementById('training-msg').style.display = 'none';
+    document.getElementById('exit-btn').style.display = 'none';
     
     document.getElementById('p1-ling-bar').style.display='none'; document.getElementById('p2-ling-bar').style.display='none';
     document.getElementById('p1-resource-bar').style.display='none'; document.getElementById('p2-resource-bar').style.display='none';
@@ -1935,6 +2066,7 @@ function resetGame() {
     
     // If online, reset connection UI but keep connection if possible, or just full reset
     if(gameMode === 'ONLINE') {
+        p1Locked = false;
         document.getElementById('online-panel').style.display = 'block';
         document.getElementById('confirm-btn').style.display = 'none';
         document.getElementById('select-title').innerText = isHost ? "你是 P1 (Host)。請選擇角色" : "你是 P2 (Client)。等待 P1 選擇...";
